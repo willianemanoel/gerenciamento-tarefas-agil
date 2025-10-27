@@ -1,0 +1,27 @@
+name: Integracao Continua (CI) - Testes Pytest
+
+on:
+  # Roda o pipeline em push e pull requests para a branch principal
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4 # Passo 1: Clona o código do repositório
+    
+    - name: Configurar Ambiente Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x' # Usa uma versão recente
+        
+    - name: Instalar Dependências (Flask e Pytest)
+      run: pip install -r requirements.txt
+        
+    - name: Rodar Testes Automatizados com Pytest
+      run: |
+        pytest tests/ # Comando que executa os testes
