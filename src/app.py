@@ -1,4 +1,3 @@
-# src/app.py
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -13,8 +12,20 @@ next_id = 3
 # Rota READ (Listar todas as tarefas)
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    # Retorna o JSON com a lista de tarefas
-    return jsonify({'tasks': tasks})
+    # Define a ordem de prioridade (Alta > Média > Baixa)
+    priority_order = {"Alta": 3, "Média": 2, "Baixa": 1}
+
+    # Ordena a lista de tarefas: 
+    # Primeiro, usa a ordem definida; depois, usa o ID como desempate.
+    # Esta ordenação é a alteração real para o commit da Mudança de Escopo.
+    sorted_tasks = sorted(
+        tasks, 
+        key=lambda t: (priority_order.get(t['priority'], 0), t['id']), 
+        reverse=True
+    )
+    
+    # Retorna o JSON com a lista de tarefas ordenadas por prioridade
+    return jsonify({'tasks': sorted_tasks})
 
 # Rota CREATE (Criar nova tarefa)
 @app.route('/tasks', methods=['POST'])
