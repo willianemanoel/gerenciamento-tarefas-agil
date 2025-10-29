@@ -1,3 +1,4 @@
+# src/app.py
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -9,6 +10,15 @@ tasks = [
 ]
 next_id = 3
 
+# ===================================================================
+# FUNÇÃO AUXILIAR REFATORADA PARA O COMMIT #5
+# A busca por tarefa estava repetida em PUT e DELETE.
+# ===================================================================
+def find_task(task_id):
+    """Encontra uma tarefa na lista global pelo ID."""
+    return next((t for t in tasks if t['id'] == task_id), None)
+# ===================================================================
+
 # Rota READ (Listar todas as tarefas)
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
@@ -16,8 +26,6 @@ def get_tasks():
     priority_order = {"Alta": 3, "Média": 2, "Baixa": 1}
 
     # Ordena a lista de tarefas: 
-    # Primeiro, usa a ordem definida; depois, usa o ID como desempate.
-    # Esta ordenação é a alteração real para o commit da Mudança de Escopo.
     sorted_tasks = sorted(
         tasks, 
         key=lambda t: (priority_order.get(t['priority'], 0), t['id']), 
@@ -40,7 +48,6 @@ def create_task():
         'id': next_id,
         'title': request.json['title'],
         'done': request.json.get('done', False),
-        # Prioridade (default: Baixa, parte da Mudança de Escopo)
         'priority': request.json.get('priority', 'Baixa') 
     }
     tasks.append(new_task)
@@ -50,8 +57,9 @@ def create_task():
 # Rota UPDATE (Atualizar tarefa existente)
 @app.route('/tasks/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
-    # Encontra a tarefa pelo ID
-    task = next((t for t in tasks if t['id'] == task_id), None)
+    # CHAMA A FUNÇÃO AUXILIAR REFATORADA
+    task = find_task(task_id)
+    
     if task is None:
         return jsonify({'error': 'Tarefa não encontrada.'}), 404
 
@@ -61,7 +69,7 @@ def update_task(task_id):
     if 'done' in request.json:
         task['done'] = request.json['done']
     if 'priority' in request.json:
-        task['priority'] = request.json['priority'] # Permite atualizar a prioridade
+        task['priority'] = request.json['priority']
 
     return jsonify({'task': task})
 
@@ -69,11 +77,19 @@ def update_task(task_id):
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     global tasks
+    
+    # Verifica se a tarefa existe antes de tentar deletar
+    if find_task(task_id) is None:
+        return jsonify({'error': 'Tarefa não encontrada.'}), 404
+        
     initial_len = len(tasks)
+    # Filtra a lista, removendo o item
     tasks = [task for task in tasks if task['id'] != task_id]
 
+    # Esta verificação é redundante após o find_task, mas mantida para segurança
     if len(tasks) == initial_len:
-        return jsonify({'error': 'Tarefa não encontrada.'}), 404
+         # Se a tarefa já foi encontrada (acima), esta linha nunca deve ser alcançada, mas é um bom fallback
+        return jsonify({'error': 'Erro ao deletar tarefa.'}), 500
     
     return jsonify({'result': True}), 200
 
