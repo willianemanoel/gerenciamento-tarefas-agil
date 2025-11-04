@@ -11,12 +11,22 @@ tasks = [
 next_id = 3
 
 # ===================================================================
-# FUNÇÃO AUXILIAR REFATORADA PARA O COMMIT #5
-# A busca por tarefa estava repetida em PUT e DELETE.
+# FUNÇÕES AUXILIARES
 # ===================================================================
+
 def find_task(task_id):
     """Encontra uma tarefa na lista global pelo ID."""
     return next((t for t in tasks if t['id'] == task_id), None)
+
+# NOVA FUNÇÃO DE VALIDAÇÃO PARA O COMMIT #6 (FIX)
+def validate_priority(priority):
+    """Verifica se a string de prioridade é válida."""
+    # Lista explícita de prioridades permitidas
+    valid_priorities = ["Alta", "Média", "Baixa"] 
+    if priority in valid_priorities:
+        return priority
+    return None
+
 # ===================================================================
 
 # Rota READ (Listar todas as tarefas)
@@ -40,15 +50,22 @@ def get_tasks():
 def create_task():
     global next_id
     
-    # Validação de dados (Essencial para testes)
+    # Validação de Título (CRUD Básico)
     if not request.json or 'title' not in request.json:
         return jsonify({'error': 'Título da tarefa é obrigatório.'}), 400
+
+    # VALIDAÇÃO DE PRIORIDADE (COMMIT #6)
+    priority_input = request.json.get('priority', 'Baixa')
+    validated_priority = validate_priority(priority_input)
+    if not validated_priority:
+        return jsonify({'error': f'Prioridade inválida. Use Alta, Média ou Baixa.'}), 400
+
 
     new_task = {
         'id': next_id,
         'title': request.json['title'],
         'done': request.json.get('done', False),
-        'priority': request.json.get('priority', 'Baixa') 
+        'priority': validated_priority 
     }
     tasks.append(new_task)
     next_id += 1
@@ -68,8 +85,15 @@ def update_task(task_id):
         task['title'] = request.json['title']
     if 'done' in request.json:
         task['done'] = request.json['done']
+        
+    # VALIDAÇÃO DE PRIORIDADE EM UPDATE (COMMIT #6)
     if 'priority' in request.json:
-        task['priority'] = request.json['priority']
+        priority_input = request.json['priority']
+        validated_priority = validate_priority(priority_input)
+        if not validated_priority:
+            return jsonify({'error': f'Prioridade inválida. Use Alta, Média ou Baixa.'}), 400
+        
+        task['priority'] = validated_priority
 
     return jsonify({'task': task})
 
@@ -86,9 +110,7 @@ def delete_task(task_id):
     # Filtra a lista, removendo o item
     tasks = [task for task in tasks if task['id'] != task_id]
 
-    # Esta verificação é redundante após o find_task, mas mantida para segurança
     if len(tasks) == initial_len:
-         # Se a tarefa já foi encontrada (acima), esta linha nunca deve ser alcançada, mas é um bom fallback
         return jsonify({'error': 'Erro ao deletar tarefa.'}), 500
     
     return jsonify({'result': True}), 200
