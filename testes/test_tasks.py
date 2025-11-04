@@ -1,6 +1,7 @@
 # tests/test_tasks.py
 import pytest
 from src.app import app
+import json # Importação necessária para o novo teste
 
 # Fixture para configurar o cliente de teste do Flask
 @pytest.fixture
@@ -58,3 +59,19 @@ def test_filter_tasks_by_priority_success(client):
     data = response.get_json()
     assert len(data['tasks']) == 1 # Apenas a tarefa 1 deve ser encontrada
     assert data['tasks'][0]['priority'] == 'Alta'
+
+# TESTE 5: TESTE DE VALIDAÇÃO DE PRIORIDADE INVÁLIDA (Aumento de Cobertura)
+def test_create_task_invalid_priority(client):
+    """Verifica se a validação de prioridade na criação retorna status 400, cobrindo o FIX."""
+    invalid_task_data = {
+        'title': 'Tarefa Inválida',
+        'priority': 'Urgente' # Valor que não é Alta, Média ou Baixa
+    }
+    # O uso de 'data=json.dumps(...)' é padrão para enviar JSON em testes Flask
+    response = client.post('/tasks',
+                           data=json.dumps(invalid_task_data),
+                           content_type='application/json')
+    
+    assert response.status_code == 400
+    data = response.get_json()
+    assert 'Prioridade inválida.' in data['error']
