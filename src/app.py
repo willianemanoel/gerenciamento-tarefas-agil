@@ -132,3 +132,5 @@ def filter_tasks_by_priority(task_priority):
 if __name__ == '__main__':
     # Roda a aplicação em modo debug
     app.run(debug=True)
+    
+    
