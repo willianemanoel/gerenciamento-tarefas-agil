@@ -3,46 +3,42 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# [SIMULAÇÃO DE DADOS] Lista global para armazenar tarefas
+# Lista global para simular o banco de dados das tarefas
 tasks = [
     {"id": 1, "title": "Criar Diagrama de Casos de Uso", "done": True, "priority": "Alta"},
     {"id": 2, "title": "Implementar Testes Unitários", "done": False, "priority": "Média"},
 ]
 next_id = 3
 
-# ===================================================================
-# FUNÇÕES AUXILIARES
-# ===================================================================
+# Constante Global para Otimização (perf: Commit #11)
+# O dicionário de ordem de prioridade é criado apenas uma vez.
+PRIORITY_ORDER = {"Alta": 3, "Média": 2, "Baixa": 1}
 
+
+# FUNÇÕES AUXILIARES
 def find_task(task_id):
     """Encontra uma tarefa na lista global pelo ID."""
     return next((t for t in tasks if t['id'] == task_id), None)
 
-# NOVA FUNÇÃO DE VALIDAÇÃO PARA O COMMIT #6 (FIX)
 def validate_priority(priority):
-    """Verifica se a string de prioridade é válida."""
-    # Lista explícita de prioridades permitidas
+    """Verifica se a string de prioridade é válida (fix: Commit #6)."""
     valid_priorities = ["Alta", "Média", "Baixa"] 
     if priority in valid_priorities:
         return priority
     return None
 
-# ===================================================================
+
+# ROTAS DA API
 
 # Rota READ (Listar todas as tarefas)
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    # Define a ordem de prioridade (Alta > Média > Baixa)
-    priority_order = {"Alta": 3, "Média": 2, "Baixa": 1}
-
-    # Ordena a lista de tarefas: 
+    # Ordena a lista de tarefas usando a constante global
     sorted_tasks = sorted(
         tasks, 
-        key=lambda t: (priority_order.get(t['priority'], 0), t['id']), 
+        key=lambda t: (PRIORITY_ORDER.get(t['priority'], 0), t['id']), 
         reverse=True
     )
-    
-    # Retorna o JSON com a lista de tarefas ordenadas por prioridade
     return jsonify({'tasks': sorted_tasks})
 
 # Rota CREATE (Criar nova tarefa)
@@ -50,11 +46,11 @@ def get_tasks():
 def create_task():
     global next_id
     
-    # Validação de Título (CRUD Básico)
+    # Validação de Título obrigatório
     if not request.json or 'title' not in request.json:
         return jsonify({'error': 'Título da tarefa é obrigatório.'}), 400
 
-    # VALIDAÇÃO DE PRIORIDADE (COMMIT #6)
+    # Validação de Prioridade
     priority_input = request.json.get('priority', 'Baixa')
     validated_priority = validate_priority(priority_input)
     if not validated_priority:
@@ -74,19 +70,17 @@ def create_task():
 # Rota UPDATE (Atualizar tarefa existente)
 @app.route('/tasks/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
-    # CHAMA A FUNÇÃO AUXILIAR REFATORADA
     task = find_task(task_id)
     
     if task is None:
         return jsonify({'error': 'Tarefa não encontrada.'}), 404
 
-    # Atualiza apenas os campos que vieram no body da requisição
     if 'title' in request.json:
         task['title'] = request.json['title']
     if 'done' in request.json:
         task['done'] = request.json['done']
         
-    # VALIDAÇÃO DE PRIORIDADE EM UPDATE (COMMIT #6)
+    # Validação de Prioridade
     if 'priority' in request.json:
         priority_input = request.json['priority']
         validated_priority = validate_priority(priority_input)
@@ -102,7 +96,6 @@ def update_task(task_id):
 def delete_task(task_id):
     global tasks
     
-    # Verifica se a tarefa existe antes de tentar deletar
     if find_task(task_id) is None:
         return jsonify({'error': 'Tarefa não encontrada.'}), 404
         
@@ -118,7 +111,6 @@ def delete_task(task_id):
 # Rota da Nova Feature (Filtro por Prioridade - Mudança de Escopo)
 @app.route('/tasks/filter/priority/<string:task_priority>', methods=['GET'])
 def filter_tasks_by_priority(task_priority):
-    # Converte a prioridade para o formato correto ('Alta', 'Média', 'Baixa')
     priority_search = task_priority.capitalize()
     
     filtered_tasks = [task for task in tasks if task['priority'] == priority_search]
@@ -130,7 +122,5 @@ def filter_tasks_by_priority(task_priority):
 
 
 if __name__ == '__main__':
-    # Roda a aplicação em modo debug
     app.run(debug=True)
-    
-    
+# Fim da Aplicação

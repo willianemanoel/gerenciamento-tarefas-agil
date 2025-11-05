@@ -75,3 +75,5 @@ def test_create_task_invalid_priority(client):
     assert response.status_code == 400
     data = response.get_json()
     assert 'Prioridade inválida.' in data['error']
+    
+    
