@@ -23,5 +23,8 @@ jobs:
       run: pip install -r requirements.txt
         
     - name: Rodar Testes Automatizados com Pytest
+      # CORREÇÃO: Adiciona a pasta raiz (que contém 'src/') ao Python Path
+      env:
+        PYTHONPATH: .
       run: |
         pytest testes/ # Comando que executa os testes
