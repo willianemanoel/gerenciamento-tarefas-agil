@@ -24,4 +24,4 @@ jobs:
         
     - name: Rodar Testes Automatizados com Pytest
       run: |
-        pytest tests/ # Comando que executa os testes
+        pytest testes/ # Comando que executa os testes
